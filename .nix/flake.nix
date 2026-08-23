@@ -1,77 +1,55 @@
 {
-  description = "eal-mash-web development environment";
+  description = "eal-mash-web — development shell (toolchain + encrypted env files via sops/age/ores-sops)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+
+    # The env-secret tooling is org-agnostic and lives in its own repo, so every
+    # repo shares one implementation rather than a copied script.
+    ores-sops.url = "github:ORESoftware/ores-sops";
   };
 
-  outputs = { nixpkgs, ... }:
-    let
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;
-    in
-    {
-      devShells = forAllSystems (system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-        in
-        {
-          default = pkgs.mkShell {
-            packages = with pkgs; [
-              rustc
-              cargo
-              rustfmt
-              clippy
-              rust-analyzer
-              pkg-config
-              openssl
+  outputs = { self, nixpkgs, flake-utils, ores-sops }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ ores-sops.overlays.default ];
+        };
+      in
+      {
+        devShells.default = pkgs.mkShell {
+          name = "eal-mash-web";
+          packages = with pkgs; [
+            python3
+            # Qualified deliberately: `with pkgs;` does not shadow the outputs
+            # function's arguments, so a bare `ores-sops` would resolve to the
+            # flake INPUT rather than the package.
+            pkgs.ores-sops
 
-              git
-              direnv
-              just
+            # encrypted env files — env/enc/*.env.enc, see env/README.md
+            sops
+            age
+            just
+            git
+            direnv
+          ];
 
-              # encrypted env files — env/enc/*.env.enc, see env/README.md
-              sops
-              age
-              python3 # .just/dotenv.py — the shared dotenv parser
-            ];
-
-            shellHook = ''
-              # `env/dec/` is intentionally ignored, so a fresh clone cannot
-              # contain it. Recreate the owner-only plaintext boundary before
-              # SOPS, Just, hooks, or application tooling can need it.
-              _repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-              if [ -L "$_repo_root/env" ] || [ -L "$_repo_root/env/dec" ]; then
-                echo "refusing to prepare symlinked env/dec" >&2
-                return 1 2>/dev/null || exit 1
-              fi
-              umask 077
-              mkdir -p "$_repo_root/env/dec"
-              chmod 700 "$_repo_root/env/dec"
-              unset _repo_root
-
-              echo "eal-mash-web dev shell (${system})"
-
-              # Point sops at this machine's age key. sops finds the platform
-              # default on its own, but exporting it makes the path explicit in
-              # error messages and keeps macOS/Linux checkouts interchangeable.
-              if [ -z "''${SOPS_AGE_KEY_FILE:-}" ]; then
-                for _k in "''${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt" \
-                          "$HOME/Library/Application Support/sops/age/keys.txt"; do
-                  if [ -f "$_k" ]; then export SOPS_AGE_KEY_FILE="$_k"; break; fi
-                done
-                unset _k
-              fi
-              if [ -z "''${SOPS_AGE_KEY_FILE:-}" ]; then
-                echo "  no age key yet — run 'just env-keygen' to create one"
-              fi
-            '';
-          };
-        });
-    };
+          # Installs the merge/checkout refresh hooks and re-decrypts the active
+          # environment. It deliberately does NOT pick an environment for you:
+          # the first `just env-use <name>` stays explicit.
+          shellHook = ores-sops.lib.shellHook + ''
+            _repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+            if [ -L "$_repo_root/env" ] || [ -L "$_repo_root/env/dec" ]; then
+              echo "env: refusing to prepare symlinked env/dec" >&2
+              return 1 2>/dev/null || exit 1
+            fi
+            umask 077
+            mkdir -p "$_repo_root/env/dec"
+            chmod 700 "$_repo_root/env/dec"
+            unset _repo_root
+          '';
+        };
+      });
 }

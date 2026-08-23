@@ -1,6 +1,6 @@
 # .nix
 
-Nix flake defining the reproducible development environment for this repo
-(toolchain plus sops/age/just for the encrypted env files). `flake.nix`
-declares the dev shell; `flake.lock` pins input revisions. The top-level
-`./shell` helper enters this shell via `nix develop ./.nix`.
+Nix flake defining the reproducible development shell for this repo: `just`,
+`sops`, `age` and `ores-sops` for the encrypted environment files under
+`env/enc/` (see `../env/README.md`). Enter it with `nix develop ./.nix`, or let
+direnv do it via the top-level `.envrc`.
