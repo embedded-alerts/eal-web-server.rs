@@ -1,8 +1,8 @@
 {
   "bootstrap_date": "20260804",
-  "kind": "mash",
+  "kind": "web-server",
   "organization": "embedded-alerts",
-  "repository": "eal-mash-web",
+  "repository": "eal-web-server.rs",
   "required_paths": [
     ".github/workflows/ci.yml",
     ".gitignore",

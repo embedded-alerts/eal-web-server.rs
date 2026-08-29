@@ -1,4 +1,4 @@
-# eal-mash-web — task runner. Run `just` to see everything.
+# eal-web-server — task runner. Run `just` to see everything.
 #
 # Environment secrets live in env/enc/*.env.enc, encrypted with sops + age and
 # committed to this repo. `just env-use <name>` decrypts to env/dec/<name>.env

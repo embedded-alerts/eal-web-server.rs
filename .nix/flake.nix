@@ -1,5 +1,5 @@
 {
-  description = "eal-mash-web — development shell (toolchain + encrypted env files via sops/age/ores-sops)";
+  description = "eal-web-server — development shell (toolchain + encrypted env files via sops/age/ores-sops)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -20,7 +20,7 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          name = "eal-mash-web";
+          name = "eal-web-server";
           packages = with pkgs; [
             python3
             # Qualified deliberately: `with pkgs;` does not shadow the outputs

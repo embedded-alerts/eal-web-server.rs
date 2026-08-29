@@ -1,21 +1,37 @@
 [package]
-name = "eal-mash-web"
+name = "eal-web-server"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.95"
 license = "MIT"
 
 [dependencies]
+k8s-web-api-data-plane = { git = "https://github.com/ORESoftware/k8s-libs-and-shared-defs.git", rev = "55adadc9f6d223d40b28ae66097dfe16930951b1", package = "k8s-web-api-data-plane" }
 anyhow = "1"
+async-nats = "0.50"
 axum = { version = "0.8", features = ["macros", "ws"] }
+bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
+eal-api-server = { git = "https://github.com/embedded-alerts/eal-api-server.rs", rev = "882d1e92e623805dffeba9e5f5597f164a4b6fb3" }
 futures-util = "0.3"
-sea-orm = { version = "1.1", features = ["macros", "runtime-tokio-rustls", "sqlx-postgres"] }
+maud = { version = "0.27", features = ["axum"] }
+next-loggers = { git = "https://github.com/ores-otel/ores.otel.log", rev = "ca176fb6768a9750d262a536952268625ffd3a8a", package = "oresoftware-next-loggers" }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+rustls = "0.23"
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-chrono", "with-json", "with-uuid"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync"] }
-tower-http = { version = "0.6", features = ["cors", "trace"] }
+shared-auth-client = { git = "https://github.com/shared-auth/shared-auth-clients", rev = "a814cf34eeef3429e5dee36f45965b6958d694bb", package = "shared-auth-client" }
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-rustls = "0.26"
+tokio-util = { version = "0.7", features = ["codec"] }
+tower-http = { version = "0.7", features = ["trace"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-maud = { version = "0.27", features = ["axum"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }

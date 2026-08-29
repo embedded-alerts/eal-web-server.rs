@@ -1,16 +1,16 @@
 FROM rust:1-bookworm AS build
 WORKDIR /work
 COPY . .
-RUN cargo build --locked --release || cargo build --release
+RUN cargo build --locked --release
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 app
-COPY --from=build /work/target/release/eal-mash-web /usr/local/bin/eal-mash-web
+COPY --from=build /work/target/release/eal-web-server /usr/local/bin/eal-web-server
 USER app
-ENV BIND_ADDR=0.0.0.0:8080
-EXPOSE 8080
+ENV HOST=0.0.0.0 PORT=8081
+EXPOSE 8081
 
 # --- sops: decrypt at `docker run`, never at `docker build` ------------------
 # The image carries only CIPHERTEXT (env/enc/<SOPS_ENV>.env.enc) and the sops
@@ -24,4 +24,4 @@ COPY --chmod=0755 scripts/sops-entrypoint.sh /usr/local/bin/sops-entrypoint.sh
 COPY --chmod=0644 env/enc/${SOPS_ENV}.env.enc /app/secrets/app.env
 ENV SOPS_SECRETS_FILE=/app/secrets/app.env
 
-ENTRYPOINT ["/usr/local/bin/sops-entrypoint.sh", "/usr/local/bin/eal-mash-web"]
+ENTRYPOINT ["/usr/local/bin/sops-entrypoint.sh", "/usr/local/bin/eal-web-server"]
