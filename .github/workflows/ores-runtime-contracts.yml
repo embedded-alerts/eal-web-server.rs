@@ -11,7 +11,6 @@ env:
   EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
   ZED_CLI_REV: a1c5b7a3c72b957944b76911fcbc723dd9c16541
   FLAGS2ENV_REV: 333c2ace93c362d274171ab0e0edf613d96a8e59
-  ORES_CLI_REV: 19063469d3bf399415d520386e4e9423c4c5fde6
 jobs:
   smoke:
     runs-on: ubuntu-24.04
@@ -26,12 +25,17 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"; test -f .zpkg.toml; test -f .cli-flags.toml
           git clone --filter=blob:none https://github.com/zed-pkg/zed-cli.git "$RUNNER_TEMP/zed-cli"; git -C "$RUNNER_TEMP/zed-cli" checkout --detach "$ZED_CLI_REV"; (cd "$RUNNER_TEMP/zed-cli" && cargo build --locked --release --bin zed)
           git clone --filter=blob:none https://github.com/flags-2-env/flags-2-env.git "$RUNNER_TEMP/flags2env"; git -C "$RUNNER_TEMP/flags2env" checkout --detach "$FLAGS2ENV_REV"; make -C "$RUNNER_TEMP/flags2env" all
-          git clone --filter=blob:none https://github.com/ORESoftware/ores-cli.git "$RUNNER_TEMP/ores-cli"; git -C "$RUNNER_TEMP/ores-cli" checkout --detach "$ORES_CLI_REV"; (cd "$RUNNER_TEMP/ores-cli" && cargo build --locked --release --bin oresc --bin ores-cli)
-          "$RUNNER_TEMP/zed-cli/target/release/zed" validate --manifest .zpkg.toml
+          ZED_BIN="$RUNNER_TEMP/zed-cli/target/release/zed"
+          consumer="$RUNNER_TEMP/oresc-zed-consumer"
+          mkdir -p "$consumer"
+          (cd "$consumer" && "$ZED_BIN" install oresoftware/ores-cli@=0.1.0 --do-not-write-new-manifest --allow-build --adapter none)
+          (cd "$consumer" && "$ZED_BIN" run oresc -- --no-json doctor)
+          (cd "$consumer" && "$ZED_BIN" run ores-cli -- --no-json doctor)
+          "$ZED_BIN" validate --manifest .zpkg.toml
           "$RUNNER_TEMP/flags2env/build/flags2env" audit .cli-flags.toml
-          "$RUNNER_TEMP/ores-cli/target/release/oresc" --no-json audit repo --path . --profile baseline
-          "$RUNNER_TEMP/ores-cli/target/release/ores-cli" --no-json audit repo --path . --profile baseline
-          "$RUNNER_TEMP/ores-cli/target/release/oresc" --no-json audit repo --path . --profile source
+          (cd "$consumer" && "$ZED_BIN" run oresc -- --no-json audit repo --path "$GITHUB_WORKSPACE" --profile baseline)
+          (cd "$consumer" && "$ZED_BIN" run ores-cli -- --no-json audit repo --path "$GITHUB_WORKSPACE" --profile baseline)
+          (cd "$consumer" && "$ZED_BIN" run oresc -- --no-json audit repo --path "$GITHUB_WORKSPACE" --profile source)
           ! (test -f .shared-auth.toml && test -f .auth-shared.toml)
           ! grep -R --line-number --fixed-strings 'github.com/ORESoftware/flags-2-env' Cargo.toml Cargo.lock .zpkg.toml 2>/dev/null
           git diff --exit-code HEAD
