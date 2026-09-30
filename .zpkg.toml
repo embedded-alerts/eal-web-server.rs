@@ -20,6 +20,7 @@ dir = ".vendor/.zed"
 "embedded-alerts/eal-libs" = "^0.1.0"
 "embedded-alerts/eal-sync" = "^0.1.0"
 "shared-auth/shared-auth-clients" = "^0.1.0"
+"oresoftware/ores-sw" = "^0.1.0"
 
 [publish]
 include_readme = true
